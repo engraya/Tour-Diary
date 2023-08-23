@@ -6,10 +6,10 @@ const Author = require('../models/author');
 // All Authors
 router.get('/', async (request, response) => {
     let searchOptions = {}
-    if (request.query.name != null && request.query.name !== '') {
-        searchOptions.name = new RegExp(request.query.name, 'i')
+    let queryNameString = request.query.name
+    if (queryNameString != null && queryNameString !== '') {
+        searchOptions.name = new RegExp(queryNameString, 'i')
     }
-
     try {
         const authors = await Author.find(searchOptions)
         const context = { authors : authors, searchOptions : request.query }
