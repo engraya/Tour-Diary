@@ -5,7 +5,8 @@
 const express = require('express')
 const expressEjsLayouts = require('express-ejs-layouts')
 const app = express()
-const expressLayout = require('express-ejs-layouts')
+const expressLayout = require('express-ejs-layouts');
+const path = require('path');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 
@@ -31,7 +32,7 @@ app.set('view engine', 'ejs')
 app.set('views', __dirname + '/views')
 app.set('layout', 'layouts/layout')
 app.use(expressEjsLayouts)
-app.use(express.static('public'))
+app.use(express.static(path.join(__dirname,"public")));
 app.use(bodyParser.urlencoded({ extended : false, limit : '10mb' }))
 
 

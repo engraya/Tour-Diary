@@ -7,7 +7,7 @@ const Author = require('../models/author');
 const multer = require('multer');
 const fs = require('fs')
 
-const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg']
+const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/webp', 'image/svg+xml', 'image/apng', 'image/avif']
 const upload = multer({
     dest: uploadPath, 
     fileFilter: (request, file, callback) => {
@@ -55,8 +55,9 @@ router.post('/', upload.single('cover'),  async (request, response) => {
         author: request.body.author,
         publishDate : request.body.publishDate,
         pageCount : request.body.pageCount,
+        coverImageName : filename,
         description : request.body.description,
-        coverImageName : filename
+     
     })
 
     try {
