@@ -1,19 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const Book = require('../models/book');
-const path = require('path');
-const uploadPath = path.join('public', Book.coverImageBasePath)
 const Author = require('../models/author');
-const multer = require('multer');
-const fs = require('fs')
+const fs = require('fs');
+const multer  = require('multer');
 
-const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/webp', 'image/svg+xml', 'image/apng', 'image/avif']
-const upload = multer({
-    dest: uploadPath, 
-    fileFilter: (request, file, callback) => {
-        callback(null, imageMimeTypes.includes(file.mimetype))
-    }
+
+const imageMimeTypes = ['image/jpeg', 'image/png', 'images/gif']
+
+
+//image uploads
+var storage = multer.diskStorage({
+    destination : function(request, file, callback) {
+        callback(null, "./uploads/")
+    },
+    filename : function(request, file, callback) {
+        callback(null, file.fieldname + "_" + Date.now() + "_" + file.originalname);
+    },
 })
+
+var upload = multer({
+    storage : storage,
+}).single('image')
 
 
 
@@ -48,36 +56,30 @@ router.get('/new', async (request, response) => {
 
 
 // Create Book Route
-router.post('/', upload.single('cover'),  async (request, response) => {
-    const filename = request.file != null ? request.file.filename : null
+router.post('/', upload,  async (request, response) => {
+    // const filename = request.file != null ? request.file.filename : null
     const book = new Book({
         title: request.body.title,
         author: request.body.author,
         publishDate : request.body.publishDate,
         pageCount : request.body.pageCount,
-        coverImageName : filename,
         description : request.body.description,
+        image : request.file.filename,
      
     })
+
 
     try {
         const newBook = await book.save()
         //response.redirect(`books/${newBook.id}`)
         response.redirect('books')
     } catch {
-        if (book.coverImageName != null) {
-            removeBookCover(book.coverImageName)
-        }
+        // if (book.coverImageName != null) {
+        //     removeBookCover(book.coverImageName)
+        // }
         renderNewPage(response, book, true)
     }
 })
-
-
-function removeBookCover(fileName) {
-    fs.unlink(path.join(uploadPath, fileName), error => {
-        if (error) console.error(error)
-    })
-}
 
 
 async function renderNewPage(response, book, haserror = false) {
@@ -94,5 +96,88 @@ async function renderNewPage(response, book, haserror = false) {
 
 }
 
+
+router.get('/update/:id', (request, response) => {
+    let id = request.params.id;
+    const book = Book.findById(id)
+            .then((farmer) =>{
+                context = { book : book, title : 'Update Book'}
+                response.render("editbook", context)
+            })
+            .catch((error) => {
+                response.redirect("books")
+            })
+})
+
+router.post('/update/:id', upload, (request, response) => {
+    let id = request.params.id;
+    let new_image = ""
+
+    if (request.file) {
+        new_image = request.file.filename;
+        try {
+            fs.unlinkSync("./uploads" + request.body.old_image)
+            
+        } catch (error) {
+            console.log(error)
+        }
+    } else {
+        new_image = request.body.old_image
+    }
+
+    Book.findByIdAndUpdate(id, {
+        title: request.body.title,
+        author: request.body.author,
+        publishDate : request.body.publishDate,
+        pageCount : request.body.pageCount,
+        description : request.body.description,
+        image : new_image
+    })
+    .then(book => {
+        request.session.message = {
+            type : 'success',
+            message : 'Book Updated Successfully...!'
+        };
+        response.redirect('books')
+    })
+    .catch((error) => console.log(error))
+
+})
+
+
+
+router.get('/delete/:id', (request, response) => {
+    let id = request.params.id;
+    Book.findOneAndRemove(id)
+        .then((result) => {
+            if (result.image != '') {
+                try {
+                    fs.unlinkSync('./uploads/' + result.image)
+                } catch (error) {
+                    console.log(error)
+                }
+            }
+            request.session.message = {
+                type : 'success',
+                message : 'Book Deleted Successfully...!'
+            };
+            response.redirect('books')
+        })
+        .catch((error) => {
+            console.log(error)
+        })
+})
+
+
+
+
+// function saveCover(book, coverEncoded) {
+//     if (coverEncoded == null) return
+//     const cover = JSON.parse(coverEncoded)
+//     if (cover != null && imageMimeTypes.includes(cover.type)) {
+//       book.coverImage = new Buffer.from(cover.data, 'base64')
+//       book.coverImageType = cover.type
+//     }
+//   }
 
 module.exports = router
